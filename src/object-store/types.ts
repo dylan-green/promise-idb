@@ -1,7 +1,7 @@
-export type IDBRequestOptions = {
+export interface IDBRequestOptions {
   onsuccess?: Function;
   onerror?: Function;
-};
+}
 
 export type IDBObjectStoreParams = {
   name: string;
