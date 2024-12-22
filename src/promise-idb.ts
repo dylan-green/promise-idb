@@ -15,7 +15,13 @@ import {
   READ_WRITE,
 } from 'src/constants';
 
-type OSInstanceMethods = 'add' | 'clear' | 'get' | 'put';
+type OSInstanceMethods = 'add' | 'clear' | 'delete' | 'get' | 'put';
+
+interface CreateIndexParams {
+  indexName: string;
+  keyPath: string | string[];
+  options: CreateIndexOptions;
+}
 
 export class PromiseIDB {
   #idbDatabaseMap: Map<string, IDBDatabase>;
@@ -52,12 +58,18 @@ export class PromiseIDB {
     return this.#callObjectStoreMethod(params, CLEAR, null);
   }
 
+  /**
+   * Creates one or more new fields/columns defining a new data point for each database record to contain.
+   *
+   * @param {PromiseIDBParams} params
+   * @param {CreateIndexParams[]} indexes
+   * @returns
+   */
   async createIndex(
-    indexName: string,
-    params: OverrideT<PromiseIDBParams, 'keyPath', string | string[]>,
-    options: CreateIndexOptions = {},
+    params: PromiseIDBParams,
+    indexes: CreateIndexParams[],
   ): Promise<PromiseIDB> {
-    const { name, store, keyPath } = params;
+    const { name, store } = params;
     const db: IDBDatabase | undefined = await this.#getIDBDatabase(name);
     const nextVersion = db?.version ? db?.version + 1 : 1;
     // In order for onupgradeneeded event to fire again db needs
@@ -87,7 +99,11 @@ export class PromiseIDB {
             return reject(error);
           };
 
-          objectStore.createIndex(indexName, keyPath, options);
+          indexes.forEach((index) => {
+            const { indexName, keyPath, options } = index;
+            objectStore.createIndex(indexName, keyPath, options);
+          });
+
           return resolve(this);
         };
 
@@ -100,6 +116,13 @@ export class PromiseIDB {
     });
   }
 
+  /**
+   * Creates a new objectStore in the specified IDBDatabase.
+   *
+   * @param {PromiseIDBParams} params
+   * @param {PromiseIDBEventHandlers} eventHandlers
+   * @returns
+   */
   async createStore(
     params: PromiseIDBParams,
     eventHandlers: PromiseIDBEventHandlers = {},
@@ -117,12 +140,68 @@ export class PromiseIDB {
     return this.openDB(nextParams, eventHandlers);
   }
 
-  async delete(): Promise<PromiseIDB> {
-    return new Promise((resolve, reject) => {});
+  /**
+   * Deletes the specified record or records.
+   * @returns {Promise<PromiseIDB>}
+   */
+  async delete(
+    params: PromiseIDBParams,
+    key: string | IDBKeyRange,
+  ): Promise<PromiseIDB> {
+    return this.#callObjectStoreMethod(params, 'delete', [key]);
   }
 
-  async deleteIndex(): Promise<PromiseIDB> {
-    return new Promise((resolve, reject) => {});
+  /**
+   * Destroys the index with the specified name in the connected database, used during a version upgrade.
+   * @param {PromiseIDBParams} params
+   * @param {string} indexName
+   * @returns {Promise<PromiseIDB>}
+   */
+  async deleteIndex(
+    params: PromiseIDBParams,
+    indexName: string,
+  ): Promise<PromiseIDB> {
+    const { name, store } = params;
+    const db: IDBDatabase | undefined = await this.#getIDBDatabase(name);
+    const nextVersion = db?.version ? db?.version + 1 : 1;
+    // In order for onupgradeneeded event to fire again db needs
+    // to be closed before opening with an incremented version
+    db?.close();
+
+    return new Promise((resolve, reject) => {
+      if (!window || !(INDEXED_DB in window)) {
+        return reject(NO_INDEXED_DB);
+      }
+
+      try {
+        const idbOpenRequest: IDBOpenDBRequest = window.indexedDB.open(
+          name,
+          nextVersion,
+        );
+
+        idbOpenRequest.onupgradeneeded = (event: IDBVersionChangeEvent) => {
+          // @ts-ignore
+          const db = event?.target?.result;
+          // @ts-ignore
+          const transaction = event?.target?.transaction;
+          // const transaction: IDBTransaction = db.transaction(store);
+          const objectStore: IDBObjectStore = transaction.objectStore(store);
+
+          db.onerror = (error: Event) => {
+            return reject(error);
+          };
+
+          objectStore.deleteIndex(indexName);
+          return resolve(this);
+        };
+
+        idbOpenRequest.onerror = (error: Event) => {
+          return reject(error);
+        };
+      } catch (error) {
+        return reject(error);
+      }
+    });
   }
 
   /**
