@@ -1,5 +1,6 @@
 import type {
   CreateIndexOptions,
+  OverrideT,
   PromiseIDBParams,
   PromiseIDBEventHandlers,
   RequiredFields,
@@ -53,11 +54,10 @@ export class PromiseIDB {
 
   async createIndex(
     indexName: string,
-    keyPath: string | string[],
-    params: PromiseIDBParams,
+    params: OverrideT<PromiseIDBParams, 'keyPath', string | string[]>,
     options: CreateIndexOptions = {},
   ): Promise<PromiseIDB> {
-    const { name, store } = params;
+    const { name, store, keyPath } = params;
     const db: IDBDatabase | undefined = await this.#getIDBDatabase(name);
     const nextVersion = db?.version ? db?.version + 1 : 1;
     // In order for onupgradeneeded event to fire again db needs
