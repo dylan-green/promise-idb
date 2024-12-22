@@ -253,6 +253,12 @@ export class PromiseIDB {
     return this.#callObjectStoreMethod(params, 'put', [methodArgs]);
   }
 
+  /**
+   * Sets IDBDatabase into #idbDatabaseMap.
+   *
+   * @param {string} name
+   * @param {IDBDatabase} db
+   */
   #setIDBDatabase(name: string, db: IDBDatabase): void {
     this.#idbDatabaseMap.set(name, db);
   }
