@@ -3,8 +3,16 @@ import type {
   PromiseIDBParams,
   PromiseIDBEventHandlers,
   RequiredFields,
-} from './types';
-import { INDEXED_DB, NO_INDEXED_DB, READ_WRITE } from './constants';
+} from 'src/types';
+import {
+  ADD,
+  CLEAR,
+  GET,
+  PUT,
+  INDEXED_DB,
+  NO_INDEXED_DB,
+  READ_WRITE,
+} from 'src/constants';
 
 type OSInstanceMethods = 'add' | 'clear' | 'get' | 'put';
 
@@ -29,7 +37,7 @@ export class PromiseIDB {
     value: any,
     key?: string,
   ): Promise<PromiseIDB> {
-    return this.#callObjectStoreMethod(params, 'add', [value, key]);
+    return this.#callObjectStoreMethod(params, ADD, [value, key]);
   }
 
   /**
@@ -40,7 +48,7 @@ export class PromiseIDB {
    * @returns {Promise<PromiseIDB>}
    */
   async clear(params: PromiseIDBParams): Promise<PromiseIDB> {
-    return this.#callObjectStoreMethod(params, 'clear', null);
+    return this.#callObjectStoreMethod(params, CLEAR, null);
   }
 
   async createIndex(
@@ -128,7 +136,7 @@ export class PromiseIDB {
     params: RequiredFields<PromiseIDBParams, 'key'>,
   ): Promise<PromiseIDB> {
     const { key } = params;
-    return this.#callObjectStoreMethod(params, 'get', [key]);
+    return this.#callObjectStoreMethod(params, GET, [key]);
   }
 
   async getAll(): Promise<PromiseIDB> {
@@ -250,7 +258,7 @@ export class PromiseIDB {
       [keyPath]: key,
     };
 
-    return this.#callObjectStoreMethod(params, 'put', [methodArgs]);
+    return this.#callObjectStoreMethod(params, PUT, [methodArgs]);
   }
 
   /**
