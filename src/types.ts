@@ -18,6 +18,8 @@ export type CreateIndexOptions = {
   locale?: string | AutoEnum;
 };
 
+export type OverrideT<T, K extends string, J> = Omit<T, K> & { [P in K]: J };
+
 export type RequiredFields<T, K extends keyof T> = T & Required<Pick<T, K>>;
 
 export interface PromiseIDBParams {
