@@ -7,6 +7,7 @@
   "scripts": {
     "clean": "echo \"removing build artifacts\" && rm -rf ./dist",
     "build": "npm run clean && tsup ./src/index.ts --dts ./src/index.ts",
+    "build:publish": "npm run clean && tsup ./src/index.ts --dts ./src/index.ts --minify",
     "test": "jest"
   },
   "files": [
