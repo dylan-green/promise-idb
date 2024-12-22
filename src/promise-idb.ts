@@ -15,6 +15,15 @@ export class PromiseIDB {
     this.#idbDatabaseMap = new Map<string, IDBDatabase>();
   }
 
+  /**
+   * Adds a new record to the specified objectStore.
+   * @see https://developer.mozilla.org/en-US/docs/Web/API/IDBObjectStore/add
+   *
+   * @param params
+   * @param value
+   * @param key
+   * @returns {Promise<PromiseIDB>}
+   */
   async add(
     params: PromiseIDBParams,
     value: any,
@@ -23,6 +32,13 @@ export class PromiseIDB {
     return this.#callObjectStoreMethod(params, 'add', [value, key]);
   }
 
+  /**
+   * Deletes all the current data out of the specified objectStore.
+   * @see https://developer.mozilla.org/en-US/docs/Web/API/IDBObjectStore/clear
+   *
+   * @param {PromiseIDBParams} params
+   * @returns {Promise<PromiseIDB>}
+   */
   async clear(params: PromiseIDBParams): Promise<PromiseIDB> {
     return this.#callObjectStoreMethod(params, 'clear', null);
   }
@@ -101,6 +117,13 @@ export class PromiseIDB {
     return new Promise((resolve, reject) => {});
   }
 
+  /**
+   * Retrieves a specific record from the specified objectStore.
+   * @see https://developer.mozilla.org/en-US/docs/Web/API/IDBObjectStore/get
+   *
+   * @param {RequiredFields<PromiseIDBParams, 'key'>} params
+   * @returns {Promise<PromiseIDB>}
+   */
   async get(
     params: RequiredFields<PromiseIDBParams, 'key'>,
   ): Promise<PromiseIDB> {
@@ -209,6 +232,14 @@ export class PromiseIDB {
     });
   }
 
+  /**
+   * Updates a given record in a database, or inserts a new record if the given item does not already exist.
+   * @see https://developer.mozilla.org/en-US/docs/Web/API/IDBObjectStore/put
+   *
+   * @param {RequiredFields<PromiseIDBParams, 'key'>} params
+   * @param {any} data
+   * @returns
+   */
   async put(
     params: RequiredFields<PromiseIDBParams, 'key'>,
     data: any,
@@ -226,21 +257,29 @@ export class PromiseIDB {
     this.#idbDatabaseMap.set(name, db);
   }
 
+  /**
+   * Get IDBdatabase from internal mapping, or calls indexedDB.open.
+   * On error the promise will resolve with 'undefined' - promise never rejects.
+   *
+   * @param {string} name
+   * @returns {Promise}
+   */
   #getIDBDatabase(name: string): Promise<IDBDatabase | undefined> {
     return new Promise((resolve) => {
       if (this.#idbDatabaseMap.has(name)) {
         resolve(this.#idbDatabaseMap.get(name));
       }
+
       try {
         const idbOpenRequest: IDBOpenDBRequest = window.indexedDB.open(name);
-
+        // onsuccess, set the db into internal mapping, and resolve with the db
         idbOpenRequest.onsuccess = (event: Event): void => {
           // @ts-ignore
           const db: IDBDatabase = event?.target?.result;
           this.#setIDBDatabase(name, db);
           resolve(db);
         };
-
+        //
         idbOpenRequest.onerror = (event: Event) => {
           resolve(undefined);
         };
@@ -250,6 +289,15 @@ export class PromiseIDB {
     });
   }
 
+  /**
+   * Handles the common pattern of beginning a db transaction, retrieving the
+   * objectStore, and creating an IDBRequest by dispatching an objectStore method.
+   *
+   * @param {PromiseIDBParams} params
+   * @param {OSInstanceMethods} method
+   * @param {any[] | null} methodArgs
+   * @returns {Promise<PromiseIDB>}
+   */
   async #callObjectStoreMethod(
     params: PromiseIDBParams,
     method: OSInstanceMethods,
