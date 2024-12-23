@@ -1,21 +1,26 @@
 import type {
   CreateIndexParams,
+  KeyPath,
+  ObjectStoreMethods,
   OmitFieldType,
   PromiseIDBParams,
-  PromiseIDBEventHandlers,
+  IEventHandlers,
   RequiredFields,
-} from './types';
+} from 'src/types';
 import {
   ADD,
   CLEAR,
+  COUNT,
+  DELETE,
   GET,
+  GET_ALL,
+  GET_ALL_KEYS,
+  GET_KEY,
   PUT,
   INDEXED_DB,
   NO_INDEXED_DB,
   READ_WRITE,
-} from './constants';
-
-type OSInstanceMethods = 'add' | 'clear' | 'delete' | 'get' | 'put';
+} from 'src/constants';
 
 export class PromiseIDB {
   #idbDatabaseMap: Map<string, IDBDatabase>;
@@ -38,7 +43,11 @@ export class PromiseIDB {
     value: any,
     key?: string,
   ): Promise<PromiseIDB> {
-    return this.#callObjectStoreMethod(params, ADD, [value, key]);
+    const request: IDBRequest = await this.#transaction(params, ADD, [
+      value,
+      key,
+    ]);
+    return this;
   }
 
   /**
@@ -49,7 +58,24 @@ export class PromiseIDB {
    * @returns {Promise<PromiseIDB>}
    */
   async clear(params: PromiseIDBParams): Promise<PromiseIDB> {
-    return this.#callObjectStoreMethod(params, CLEAR, null);
+    const request: IDBRequest = await this.#transaction(params, CLEAR, null);
+    return this;
+  }
+
+  /**
+   * Returns the total number of records that match the provided key or IDBKeyRange.
+   * @see https://developer.mozilla.org/en-US/docs/Web/API/IDBObjectStore/count
+   *
+   * @param {PromiseIDBParams} params
+   * @param {IDBKeyRange | string} query
+   * @returns
+   */
+  async count(
+    params: PromiseIDBParams,
+    query?: IDBKeyRange | string,
+  ): Promise<IDBRequest> {
+    const request: IDBRequest = await this.#transaction(params, COUNT, [query]);
+    return request;
   }
 
   /**
@@ -94,14 +120,16 @@ export class PromiseIDB {
 
   /**
    * Creates a new objectStore in the specified IDBDatabase.
+   * @see https://developer.mozilla.org/en-US/docs/Web/API/IDBDatabase/createObjectStore
    *
    * @param {PromiseIDBParams} params
-   * @param {PromiseIDBEventHandlers} eventHandlers
+   * @param {IEventHandlers} eventHandlers
    * @returns {Promise<PromiseIDB>}
    */
   async createStore(
-    params: PromiseIDBParams,
-    eventHandlers: OmitFieldType<PromiseIDBEventHandlers, 'upgrade'> = {},
+    params: { name: string; store: string },
+    options?: { keyPath?: KeyPath; autoIncrement?: boolean },
+    eventHandlers?: OmitFieldType<IEventHandlers, 'upgrade'>,
   ): Promise<PromiseIDB> {
     const db = await this.#getIDBDatabase(params.name);
     const nextVersion = db?.version ? db?.version + 1 : 1;
@@ -112,11 +140,9 @@ export class PromiseIDB {
     const upgrade = (event: IDBVersionChangeEvent) => {
       // @ts-ignore
       const indexedDB = event?.target?.result;
-      const { store, keyPath = 'id' } = nextParams;
+      const { store } = nextParams;
       if (!indexedDB.objectStoreNames.contains(store)) {
-        indexedDB.createObjectStore(store, {
-          keyPath,
-        });
+        indexedDB.createObjectStore(store, options);
       }
     };
 
@@ -131,14 +157,15 @@ export class PromiseIDB {
    * @see https://developer.mozilla.org/en-US/docs/Web/API/IDBObjectStore/delete
    *
    * @param {PromiseIDBParams} params
-   * @param {string | IDBKeyRange} key
+   * @param {IDBKeyRange| string} key
    * @returns {Promise<PromiseIDB>}
    */
   async delete(
     params: PromiseIDBParams,
-    key: string | IDBKeyRange,
+    key: IDBKeyRange | string,
   ): Promise<PromiseIDB> {
-    return this.#callObjectStoreMethod(params, 'delete', [key]);
+    const request: IDBRequest = await this.#transaction(params, DELETE, [key]);
+    return this;
   }
 
   /**
@@ -179,32 +206,91 @@ export class PromiseIDB {
    */
   async get(
     params: RequiredFields<PromiseIDBParams, 'key'>,
-  ): Promise<PromiseIDB> {
+  ): Promise<IDBRequest> {
     const { key } = params;
-    return this.#callObjectStoreMethod(params, GET, [key]);
-  }
-
-  async getAll(): Promise<PromiseIDB> {
-    return new Promise((resolve, reject) => {});
-  }
-
-  async getAllKeys(): Promise<PromiseIDB> {
-    return new Promise((resolve, reject) => {});
+    const request: IDBRequest = await this.#transaction(params, GET, [key]);
+    return request;
   }
 
   /**
-   * Get the current version of the named IDBDatabase.
+   * Resolves with an IDBRequest object containing all objects in the object store
+   * matching the specified parameter, or all objects in the store if no parameters are given.
+   * @see https://developer.mozilla.org/en-US/docs/Web/API/IDBObjectStore/getAll
    *
-   * @param {string} name
-   * @returns {Promise<number | undefined>}
+   * @param {PromiseIDBParams} params
+   * @param {string} query
+   * @param {number} count
+   * @returns {Promise<PromiseIDB>}
    */
-  async getDBVersion(name: string): Promise<number | undefined> {
-    const db = await this.#getIDBDatabase(name);
-    return db?.version;
+  async getAll(
+    params: PromiseIDBParams,
+    query?: IDBKeyRange | string,
+    count?: number,
+  ): Promise<IDBRequest> {
+    const request: IDBRequest = await this.#transaction(params, GET_ALL, [
+      query,
+      count,
+    ]);
+    return request;
   }
 
-  async getKey(): Promise<PromiseIDB> {
-    return new Promise((resolve, reject) => {});
+  /**
+   * Retrieves record keys for all objects in the object store matching the specified parameter
+   * or all objects in the store if no parameters are given.
+   * @see https://developer.mozilla.org/en-US/docs/Web/API/IDBObjectStore/getAllKeys
+   *
+   * @param {PromiseIDBParams} params
+   * @param {IDBKeyRange} query
+   * @param {number} count
+   * @returns {Promise<IDBRequest>}
+   */
+  async getAllKeys(
+    params: PromiseIDBParams,
+    query?: IDBKeyRange,
+    count?: number,
+  ): Promise<IDBRequest> {
+    const request: IDBRequest = await this.#transaction(params, GET_ALL_KEYS, [
+      query,
+      count,
+    ]);
+    return request;
+  }
+
+  /**
+   * Rreturns the key selected by the specified query. This is for retrieving specific records from an object store.
+   * @see https://developer.mozilla.org/en-US/docs/Web/API/IDBObjectStore/getKey
+   *
+   * @param {PromiseIDBParams} params
+   * @param {IDBKeyRange | string} key
+   * @returns {Promise<PromiseIDB>}
+   */
+  async getKey(
+    params: PromiseIDBParams,
+    key: IDBKeyRange | string,
+  ): Promise<PromiseIDB> {
+    const request: IDBRequest = await this.#transaction(params, GET_KEY, [key]);
+    return this;
+  }
+
+  /**
+   * Updates a given record in a database, or inserts a new record if the given item does not already exist.
+   * @see https://developer.mozilla.org/en-US/docs/Web/API/IDBObjectStore/put
+   *
+   * @param {RequiredFields<PromiseIDBParams, 'key'>} params
+   * @param {any} data
+   * @returns {Promise<PromiseIDB>}
+   */
+  async put(params: PromiseIDBParams, data: any): Promise<PromiseIDB> {
+    const { key } = params;
+    const methodArgs = {
+      ...data,
+      key,
+    };
+
+    const request: IDBRequest = await this.#transaction(params, PUT, [
+      methodArgs,
+    ]);
+    return this;
   }
 
   /**
@@ -214,7 +300,7 @@ export class PromiseIDB {
    * in addition to custom onsuccess and onerror event callbacks.
    *
    * @param {PromiseIDBParams} params
-   * @param {PromiseIDBEventHandlers} handlers
+   * @param {IEventHandlers} handlers
    * @returns {Promise<PromiseIDB>}
    */
   async openDB(
@@ -226,7 +312,7 @@ export class PromiseIDB {
       upgrade,
       onsuccess,
       onerror,
-    }: PromiseIDBEventHandlers = {},
+    }: IEventHandlers = {},
   ): Promise<PromiseIDB> {
     const { name, version } = params;
 
@@ -301,24 +387,14 @@ export class PromiseIDB {
   }
 
   /**
-   * Updates a given record in a database, or inserts a new record if the given item does not already exist.
-   * @see https://developer.mozilla.org/en-US/docs/Web/API/IDBObjectStore/put
+   * Get the current version of the named IDBDatabase.
    *
-   * @param {RequiredFields<PromiseIDBParams, 'key'>} params
-   * @param {any} data
-   * @returns {Promise<PromiseIDB>}
+   * @param {string} name
+   * @returns {Promise<number | undefined>}
    */
-  async put(
-    params: RequiredFields<PromiseIDBParams, 'key'>,
-    data: any,
-  ): Promise<PromiseIDB> {
-    const { key, keyPath = 'id' } = params;
-    const methodArgs = {
-      ...data,
-      [keyPath]: key,
-    };
-
-    return this.#callObjectStoreMethod(params, PUT, [methodArgs]);
+  async getDBVersion(name: string): Promise<number | undefined> {
+    const db = await this.#getIDBDatabase(name);
+    return db?.version;
   }
 
   /**
@@ -373,11 +449,11 @@ export class PromiseIDB {
    * @param {any[] | null} methodArgs
    * @returns {Promise<PromiseIDB>}
    */
-  async #callObjectStoreMethod(
+  async #transaction(
     params: PromiseIDBParams,
-    method: OSInstanceMethods,
+    method: ObjectStoreMethods,
     methodArgs: any[] | null,
-  ): Promise<PromiseIDB> {
+  ): Promise<IDBRequest> {
     const { name, store } = params;
     const db: IDBDatabase | undefined = await this.#getIDBDatabase(name);
     const args = methodArgs ?? [];
@@ -395,7 +471,7 @@ export class PromiseIDB {
           const request: IDBRequest = objectStore[method](...args);
 
           request.onsuccess = (ev: Event) => {
-            return resolve(this);
+            return resolve(request);
           };
 
           request.onerror = (ev: Event) => {

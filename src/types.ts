@@ -1,4 +1,4 @@
-export interface PromiseIDBEventHandlers {
+export interface IEventHandlers {
   onsuccess?: Function;
   onerror?: Function;
   blocked?: Function;
@@ -7,10 +7,26 @@ export interface PromiseIDBEventHandlers {
   terminated?: Function;
 }
 
+export type ObjectStoreMethods =
+  | 'add'
+  | 'clear'
+  | 'count'
+  | 'delete'
+  | 'get'
+  | 'getAll'
+  | 'getAllKeys'
+  | 'getKey'
+  | 'index'
+  | 'openCursor'
+  | 'openKeyCursor'
+  | 'put';
+
 enum AutoEnum {
   auto,
   null,
 }
+
+export type KeyPath = string | string[];
 
 export type CreateIndexOptions = {
   unique?: boolean;
@@ -20,7 +36,7 @@ export type CreateIndexOptions = {
 
 export interface CreateIndexParams {
   indexName: string;
-  keyPath: string | string[];
+  keyPath: KeyPath;
   options?: CreateIndexOptions;
 }
 
@@ -34,6 +50,6 @@ export interface PromiseIDBParams {
   name: string;
   store: string;
   key?: string;
-  keyPath?: string;
+  keyPath?: KeyPath;
   version?: number;
 }
