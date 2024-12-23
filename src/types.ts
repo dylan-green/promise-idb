@@ -18,7 +18,15 @@ export type CreateIndexOptions = {
   locale?: string | AutoEnum;
 };
 
-export type OverrideT<T, K extends string, J> = Omit<T, K> & { [P in K]: J };
+export interface CreateIndexParams {
+  indexName: string;
+  keyPath: string | string[];
+  options?: CreateIndexOptions;
+}
+
+export type OmitFieldType<T, K extends keyof T> = T & Omit<T, K>;
+
+export type Override<T, K extends string, J> = Omit<T, K> & { [P in K]: J };
 
 export type RequiredFields<T, K extends keyof T> = T & Required<Pick<T, K>>;
 

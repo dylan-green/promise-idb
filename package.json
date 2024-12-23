@@ -12,7 +12,8 @@
   },
   "files": [
     "dist",
-    "package.json"
+    "package.json",
+    "license"
   ],
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
