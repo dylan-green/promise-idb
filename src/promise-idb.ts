@@ -1,10 +1,10 @@
 import type {
-  CreateIndexParams,
+  ICreateIndexParams,
   IEventHandlers,
+  IPromiseIDBParams,
   KeyPath,
   ObjectStoreMethods,
   OmitFieldType,
-  PromiseIDBParams,
   RequiredFields,
 } from 'src/types';
 import {
@@ -33,13 +33,13 @@ export class PromiseIDB {
    * Adds a new record to the specified objectStore.
    * @see https://developer.mozilla.org/en-US/docs/Web/API/IDBObjectStore/add
    *
-   * @param {PromiseIDBParams} params
+   * @param {IPromiseIDBParams} params
    * @param {any} value
    * @param {string} key
    * @returns {Promise<PromiseIDB>}
    */
   async add(
-    params: PromiseIDBParams,
+    params: IPromiseIDBParams,
     value: any,
     key?: string,
   ): Promise<PromiseIDB> {
@@ -54,10 +54,10 @@ export class PromiseIDB {
    * Deletes all the current data out of the specified objectStore.
    * @see https://developer.mozilla.org/en-US/docs/Web/API/IDBObjectStore/clear
    *
-   * @param {PromiseIDBParams} params
+   * @param {IPromiseIDBParams} params
    * @returns {Promise<PromiseIDB>}
    */
-  async clear(params: PromiseIDBParams): Promise<PromiseIDB> {
+  async clear(params: IPromiseIDBParams): Promise<PromiseIDB> {
     const request: IDBRequest = await this.#transaction(params, CLEAR, null);
     return this;
   }
@@ -66,12 +66,12 @@ export class PromiseIDB {
    * Returns the total number of records that match the provided key or IDBKeyRange.
    * @see https://developer.mozilla.org/en-US/docs/Web/API/IDBObjectStore/count
    *
-   * @param {PromiseIDBParams} params
+   * @param {IPromiseIDBParams} params
    * @param {IDBKeyRange | string} query
    * @returns
    */
   async count(
-    params: PromiseIDBParams,
+    params: IPromiseIDBParams,
     query?: IDBKeyRange | string,
   ): Promise<IDBRequest> {
     const request: IDBRequest = await this.#transaction(params, COUNT, [query]);
@@ -82,13 +82,13 @@ export class PromiseIDB {
    * Creates one or more new fields/columns defining a new data point for each database record to contain.
    * @see https://developer.mozilla.org/en-US/docs/Web/API/IDBObjectStore/createIndex
    *
-   * @param {PromiseIDBParams} params
-   * @param {CreateIndexParams | CreateIndexParams[]} indexes
+   * @param {IPromiseIDBParams} params
+   * @param {ICreateIndexParams | ICreateIndexParams[]} indexes
    * @returns {Promise<PromiseIDB>}
    */
   async createIndex(
-    params: PromiseIDBParams,
-    indexes: CreateIndexParams | CreateIndexParams[],
+    params: IPromiseIDBParams,
+    indexes: ICreateIndexParams | ICreateIndexParams[],
   ): Promise<PromiseIDB> {
     const { name, store } = params;
     const db: IDBDatabase | undefined = await this.#getIDBDatabase(name);
@@ -122,7 +122,7 @@ export class PromiseIDB {
    * Creates a new objectStore in the specified IDBDatabase.
    * @see https://developer.mozilla.org/en-US/docs/Web/API/IDBDatabase/createObjectStore
    *
-   * @param {PromiseIDBParams} params
+   * @param {IPromiseIDBParams} params
    * @param {IEventHandlers} eventHandlers
    * @returns {Promise<PromiseIDB>}
    */
@@ -156,12 +156,12 @@ export class PromiseIDB {
    * Deletes the specified record or records.
    * @see https://developer.mozilla.org/en-US/docs/Web/API/IDBObjectStore/delete
    *
-   * @param {PromiseIDBParams} params
+   * @param {IPromiseIDBParams} params
    * @param {IDBKeyRange| string} key
    * @returns {Promise<PromiseIDB>}
    */
   async delete(
-    params: PromiseIDBParams,
+    params: IPromiseIDBParams,
     key: IDBKeyRange | string,
   ): Promise<PromiseIDB> {
     const request: IDBRequest = await this.#transaction(params, DELETE, [key]);
@@ -172,12 +172,12 @@ export class PromiseIDB {
    * Destroys the index with the specified name in the connected database, used during a version upgrade.
    * @see https://developer.mozilla.org/en-US/docs/Web/API/IDBObjectStore/deleteIndex
    *
-   * @param {PromiseIDBParams} params
+   * @param {IPromiseIDBParams} params
    * @param {string} indexName
    * @returns {Promise<PromiseIDB>}
    */
   async deleteIndex(
-    params: PromiseIDBParams,
+    params: IPromiseIDBParams,
     indexName: string,
   ): Promise<PromiseIDB> {
     const { name, store } = params;
@@ -201,11 +201,11 @@ export class PromiseIDB {
    * Retrieves a specific record from the specified objectStore.
    * @see https://developer.mozilla.org/en-US/docs/Web/API/IDBObjectStore/get
    *
-   * @param {RequiredFields<PromiseIDBParams, 'key'>} params
+   * @param {RequiredFields<IPromiseIDBParams, 'key'>} params
    * @returns {Promise<PromiseIDB>}
    */
   async get(
-    params: RequiredFields<PromiseIDBParams, 'key'>,
+    params: RequiredFields<IPromiseIDBParams, 'key'>,
   ): Promise<IDBRequest> {
     const { key } = params;
     const request: IDBRequest = await this.#transaction(params, GET, [key]);
@@ -217,13 +217,13 @@ export class PromiseIDB {
    * matching the specified parameter, or all objects in the store if no parameters are given.
    * @see https://developer.mozilla.org/en-US/docs/Web/API/IDBObjectStore/getAll
    *
-   * @param {PromiseIDBParams} params
+   * @param {IPromiseIDBParams} params
    * @param {string} query
    * @param {number} count
    * @returns {Promise<PromiseIDB>}
    */
   async getAll(
-    params: PromiseIDBParams,
+    params: IPromiseIDBParams,
     query?: IDBKeyRange | string,
     count?: number,
   ): Promise<IDBRequest> {
@@ -239,13 +239,13 @@ export class PromiseIDB {
    * or all objects in the store if no parameters are given.
    * @see https://developer.mozilla.org/en-US/docs/Web/API/IDBObjectStore/getAllKeys
    *
-   * @param {PromiseIDBParams} params
+   * @param {IPromiseIDBParams} params
    * @param {IDBKeyRange} query
    * @param {number} count
    * @returns {Promise<IDBRequest>}
    */
   async getAllKeys(
-    params: PromiseIDBParams,
+    params: IPromiseIDBParams,
     query?: IDBKeyRange,
     count?: number,
   ): Promise<IDBRequest> {
@@ -260,12 +260,12 @@ export class PromiseIDB {
    * Rreturns the key selected by the specified query. This is for retrieving specific records from an object store.
    * @see https://developer.mozilla.org/en-US/docs/Web/API/IDBObjectStore/getKey
    *
-   * @param {PromiseIDBParams} params
+   * @param {IPromiseIDBParams} params
    * @param {IDBKeyRange | string} key
    * @returns {Promise<PromiseIDB>}
    */
   async getKey(
-    params: PromiseIDBParams,
+    params: IPromiseIDBParams,
     key: IDBKeyRange | string,
   ): Promise<PromiseIDB> {
     const request: IDBRequest = await this.#transaction(params, GET_KEY, [key]);
@@ -276,11 +276,11 @@ export class PromiseIDB {
    * Updates a given record in a database, or inserts a new record if the given item does not already exist.
    * @see https://developer.mozilla.org/en-US/docs/Web/API/IDBObjectStore/put
    *
-   * @param {RequiredFields<PromiseIDBParams, 'key'>} params
+   * @param {RequiredFields<IPromiseIDBParams, 'key'>} params
    * @param {any} data
    * @returns {Promise<PromiseIDB>}
    */
-  async put(params: PromiseIDBParams, data: any): Promise<PromiseIDB> {
+  async put(params: IPromiseIDBParams, data: any): Promise<PromiseIDB> {
     const { key } = params;
     const methodArgs = {
       ...data,
@@ -299,12 +299,12 @@ export class PromiseIDB {
    * Accepts callback functions for all IDBOpenDBRequest events,
    * in addition to custom onsuccess and onerror event callbacks.
    *
-   * @param {PromiseIDBParams} params
+   * @param {IPromiseIDBParams} params
    * @param {IEventHandlers} handlers
    * @returns {Promise<PromiseIDB>}
    */
   async openDB(
-    params: PromiseIDBParams,
+    params: IPromiseIDBParams,
     {
       blocked,
       blocking,
@@ -444,13 +444,13 @@ export class PromiseIDB {
    * Handles the common pattern of beginning a db transaction, retrieving the
    * objectStore, and creating an IDBRequest by dispatching an objectStore method.
    *
-   * @param {PromiseIDBParams} params
+   * @param {IPromiseIDBParams} params
    * @param {OSInstanceMethods} method
    * @param {any[] | null} methodArgs
    * @returns {Promise<PromiseIDB>}
    */
   async #transaction(
-    params: PromiseIDBParams,
+    params: IPromiseIDBParams,
     method: ObjectStoreMethods,
     methodArgs: any[] | null,
   ): Promise<IDBRequest> {
