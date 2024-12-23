@@ -1,10 +1,10 @@
 import type {
   CreateIndexParams,
+  IEventHandlers,
   KeyPath,
   ObjectStoreMethods,
   OmitFieldType,
   PromiseIDBParams,
-  IEventHandlers,
   RequiredFields,
 } from 'src/types';
 import {
